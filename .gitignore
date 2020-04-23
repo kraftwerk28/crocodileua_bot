@@ -105,3 +105,6 @@ dist
 
 .env.*
 dist/
+
+deploy.sh
+*.dump

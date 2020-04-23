@@ -33,20 +33,20 @@ declare module 'telegraf' {
 
 function extendContext(ctx: ContextMessageUpdate) {
   ctx.i18n = botConfig.phrases;
-  ctx.t = function (token, dict) {
+  ctx.t = function(token, dict) {
     const text = ctx.i18n[token];
     if (!text) return '';
     if (dict) return interText(text, dict);
     return text;
   };
   ctx.games = new Map();
-  ctx.replyTo = function (text, extra) {
+  ctx.replyTo = function(text, extra) {
     return this.reply(text, {
       ...extra,
       reply_to_message_id: this.message?.message_id,
     });
   };
-  ctx.cbQueryError = function () {
+  ctx.cbQueryError = function() {
     return this.answerCbQuery('An error occured.');
   };
 }
@@ -108,12 +108,15 @@ export async function main() {
 
   if (process.env.NODE_ENV === 'production') {
     const { WEBHOOK_PATH, WEBHOOK_URL, WEBHOOK_PORT } = process.env;
-    const PORT = +WEBHOOK_PORT!;
+    const port = process.env.PORT || 8080;
+    const path = `https://${WEBHOOK_URL}:${WEBHOOK_PORT}${WEBHOOK_PATH}`;
+
     await bot.telegram.setWebhook(WEBHOOK_URL!);
-    const server = createServer(bot.webhookCallback(WEBHOOK_PATH!));
-    server.listen(PORT, () =>
-      console.log(`Webhook server listening on :${PORT}`)
+    const server = createServer(bot.webhookCallback(path));
+    server.listen(port, () =>
+      console.log(`Webhook server listening on :${port}`)
     );
+
     shutdownMgr.register(server.close.bind(server));
   } else {
     bot.startPolling();

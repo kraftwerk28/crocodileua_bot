@@ -1,0 +1,10 @@
+services:
+  crocodileua-bot:
+    build: ./
+    image: kraftwerk28/crocodileua-bot
+    environment:
+      NODE_ENV: 'production'
+    env_file: ./.env.prod
+    ports:
+      - 1493:8080
+    restart: always
