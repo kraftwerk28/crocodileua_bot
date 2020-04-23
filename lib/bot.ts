@@ -8,8 +8,9 @@ import * as a from './actions';
 import * as m from './middlewares';
 import { initializeWordGen } from './wordGen';
 import { Action } from './actions';
-import { Game, interText, flushUpdates, numNoun } from './utils';
+import { Game, interText, flushUpdates } from './utils';
 import botConfig from '../bot.config.json';
+import packageJSON from '../package.json';
 import { ShutdownManager } from './shutdownManager';
 
 type Tf = Telegraf<ContextMessageUpdate>;
@@ -95,6 +96,7 @@ async function initBot(): Promise<Tf> {
 }
 
 export async function main() {
+  console.log('Version ' + packageJSON.version);
   if (process.env.NODE_ENV === 'development') {
     const { config } = await import('dotenv');
     config();
@@ -107,14 +109,15 @@ export async function main() {
   await flushUpdates(bot.telegram);
 
   if (process.env.NODE_ENV === 'production') {
-    const { WEBHOOK_PATH, WEBHOOK_URL, WEBHOOK_PORT } = process.env;
-    const port = process.env.PORT || 8080;
-    const path = `https://${WEBHOOK_URL}:${WEBHOOK_PORT}${WEBHOOK_PATH}`;
+    const { WEBHOOK_HOST, WEBHOOK_PORT, WEBHOOK_PATH } = process.env;
+    const port = +WEBHOOK_PORT!;
+    const url = `https://${WEBHOOK_HOST}:${WEBHOOK_PORT}${WEBHOOK_PATH}`;
+    console.log(`Webhook path: ${url}`);
 
-    await bot.telegram.setWebhook(WEBHOOK_URL!);
-    const server = createServer(bot.webhookCallback(path));
+    await bot.telegram.setWebhook(url);
+    const server = createServer(bot.webhookCallback(WEBHOOK_PATH!));
     server.listen(port, () =>
-      console.log(`Webhook server listening on :${port}`)
+      console.log(`Webhook server listening on :${port}.`)
     );
 
     shutdownMgr.register(server.close.bind(server));

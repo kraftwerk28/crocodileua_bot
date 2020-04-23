@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   crocodileua-bot:
     build: ./
@@ -6,5 +8,10 @@ services:
       NODE_ENV: 'production'
     env_file: ./.env.prod
     ports:
-      - 1493:8080
+      - '1493:8080'
     restart: always
+
+networks:
+  default:
+    external:
+      name: globalpg
