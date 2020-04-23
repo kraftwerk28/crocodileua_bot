@@ -1,14 +1,14 @@
 import { createServer } from 'http';
 import Telegraf, { ContextMessageUpdate, Middleware } from 'telegraf';
 import { Message, ExtraReplyMessage } from 'telegraf/typings/telegram-types';
-import { Pool } from 'pg';
+import { Pool, PoolConfig } from 'pg';
 
 import * as c from './commands';
 import * as a from './actions';
 import * as m from './middlewares';
 import { initializeWordGen } from './wordGen';
 import { Action } from './actions';
-import { Game, interText, flushUpdates } from './utils';
+import { Game, interText, flushUpdates, numNoun } from './utils';
 import botConfig from '../bot.config.json';
 import { ShutdownManager } from './shutdownManager';
 
@@ -27,6 +27,7 @@ declare module 'telegraf' {
       extra?: ExtraReplyMessage | undefined
     ): Promise<Message>;
     cbQueryError(): Promise<boolean>;
+    db: Pool;
   }
 }
 
@@ -56,19 +57,21 @@ async function initBot(): Promise<Tf> {
     BOT_USERNAME,
     DB_HOST,
     DB_PORT = 5433,
-    DB_USERNAME,
+    DB_USER,
     DB_PASSWORD,
     DB_NAME,
   } = process.env;
   const bot = new Telegraf(BOT_TOKEN!, { username: BOT_USERNAME! });
-  const db = new Pool({
+  const connectionCfg: PoolConfig = {
     host: DB_HOST,
     port: +DB_PORT,
-    user: DB_USERNAME,
+    user: DB_USER,
     password: DB_PASSWORD,
     database: DB_NAME,
-  });
-  await db.connect();
+  };
+  const db = new Pool(connectionCfg);
+  await db.connect().then(() => console.log('DBMS connected.'));
+  bot.context.db = db;
 
   const commands = Object.entries(botConfig.commands).map((c) => ({
     command: c[0],
@@ -80,12 +83,12 @@ async function initBot(): Promise<Tf> {
   bot
     .use(m.checkChatType)
     .on('text', m.onText)
-    .start(c.onStart)
-    .action(Action.REQUEST_LEADING, a.onRequestLeading)
+    .start(m.addUser, c.onStart)
+    .action(Action.REQUEST_LEADING, m.addUser, a.onRequestLeading)
     .action(Action.VIEW_WORD, a.onViewWord)
-    .action(Action.CHANGE_WORD, a.onChangeWord);
-
-  // TODO: auto set commange
+    .action(Action.CHANGE_WORD, a.onChangeWord)
+    .command('rating', c.rating)
+    .command('rating_global', c.globalRating);
 
   extendContext(bot.context);
   return bot;
@@ -98,7 +101,9 @@ export async function main() {
   }
   initializeWordGen();
   const shutdownMgr = new ShutdownManager();
+
   const bot = await initBot();
+  shutdownMgr.register(bot.context.db.end.bind(bot.context.db));
   await flushUpdates(bot.telegram);
 
   if (process.env.NODE_ENV === 'production') {

@@ -40,6 +40,11 @@ export function mention(u: User, link = false, includeLastName = true) {
   return link ? `<a href="tg://user?id=${u.id}">${text}</a>` : text;
 }
 
+export function ratingMention(first_name: string, last_name?: string) {
+  if (!last_name) return first_name;
+  return `${first_name} ${last_name}`;
+}
+
 export function interText(
   text: string,
   dict: Record<string, string> | string[]
@@ -132,7 +137,7 @@ export async function createGame(
   ctx: ContextMessageUpdate,
   leader: User
 ): Promise<Game | undefined> {
-  const { chat, from, games, t, telegram } = ctx;
+  const { chat, from, games, t, telegram, db } = ctx;
   if (!(chat && from)) return;
 
   const { word } = await randWord();
@@ -151,6 +156,11 @@ export async function createGame(
       );
     }
   }
+
+  await db.query('SELECT * FROM increase_user_leadings($1, $2)', [
+    chat.id,
+    leader.id,
+  ]);
 
   const replyMarkup = Markup.inlineKeyboard([
     Markup.callbackButton(t('view_word_btn'), Action.VIEW_WORD),
@@ -173,4 +183,13 @@ export async function createGame(
   game.elapsedTimeoutInstance = setTimeout(endGame, 5 * 60 * 1e3, ctx) as any;
   games.set(chat.id, game);
   return game;
+}
+
+export function numNoun(num: number): string {
+  if (num >= 5 && num <= 20) return 'перемог';
+  const n = num % 10;
+  if (n === 0) return 'перемог';
+  else if (n === 1) return 'перемога';
+  else if (n >= 2 && n <= 4) return 'перемоги';
+  else return 'перемог';
 }
