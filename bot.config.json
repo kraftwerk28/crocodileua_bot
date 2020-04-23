@@ -5,7 +5,7 @@
     "rating_global": "Глобальний рейтинг"
   },
   "phrases": {
-    "no_pm": "Додай мене в чат, щоб почати гру!",
+    "no_pm": "Додай мене в груповий чат, щоб почати гру! https://t.me/$0?startgroup=frompm",
     "game_started": "Гру почато. ${user} пояснює слово.",
     "winner_msg": "Панове ${winner} вгадали слово <b>${word}</b>!",
     "no_winner_msg": "Час вичерпано. Слово було: <b>${word}</b>.",

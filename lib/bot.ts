@@ -34,20 +34,20 @@ declare module 'telegraf' {
 
 function extendContext(ctx: ContextMessageUpdate) {
   ctx.i18n = botConfig.phrases;
-  ctx.t = function(token, dict) {
+  ctx.t = function (token, dict) {
     const text = ctx.i18n[token];
     if (!text) return '';
     if (dict) return interText(text, dict);
     return text;
   };
   ctx.games = new Map();
-  ctx.replyTo = function(text, extra) {
+  ctx.replyTo = function (text, extra) {
     return this.reply(text, {
       ...extra,
       reply_to_message_id: this.message?.message_id,
     });
   };
-  ctx.cbQueryError = function() {
+  ctx.cbQueryError = function () {
     return this.answerCbQuery('An error occured.');
   };
 }
@@ -62,7 +62,10 @@ async function initBot(): Promise<Tf> {
     DB_PASSWORD,
     DB_NAME,
   } = process.env;
-  const bot = new Telegraf(BOT_TOKEN!, { username: BOT_USERNAME! });
+  const bot = new Telegraf(BOT_TOKEN!, {
+    username: BOT_USERNAME!,
+    telegram: { webhookReply: false },
+  });
   const connectionCfg: PoolConfig = {
     host: DB_HOST,
     port: +DB_PORT,
@@ -110,7 +113,7 @@ export async function main() {
 
   if (process.env.NODE_ENV === 'production') {
     const { WEBHOOK_HOST, WEBHOOK_PORT, WEBHOOK_PATH } = process.env;
-    const port = +WEBHOOK_PORT!;
+    const port = process.env.PORT || 8080;
     const url = `https://${WEBHOOK_HOST}:${WEBHOOK_PORT}${WEBHOOK_PATH}`;
     console.log(`Webhook path: ${url}`);
 

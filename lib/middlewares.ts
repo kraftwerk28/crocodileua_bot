@@ -5,7 +5,7 @@ export const checkChatType: Mw = (ctx, next = noop) => {
   const { chat } = ctx;
   if (!chat) return next();
   if (['group', 'supergroup'].includes(chat.type)) return next();
-  return ctx.reply(ctx.t('no_pm'));
+  return ctx.reply(ctx.t('no_pm', [ctx.me!]));
 };
 
 export const onText: Mw = async function (ctx, next = noop) {
