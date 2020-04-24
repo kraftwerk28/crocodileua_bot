@@ -15,7 +15,7 @@ export const onText: Mw = async function (ctx, next = noop) {
   if (!game) return next();
 
   if (
-    game.gameState === GameState.PENDING &&
+    [GameState.PENDING, GameState.TIMED_OUT].includes(game.gameState) &&
     checkWord(message.text!, game.word)
   ) {
     if (from.id === game.leader.id) {

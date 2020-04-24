@@ -5,9 +5,8 @@ export const onStart: Mw = async (ctx) => {
   const { from, games, chat } = ctx;
   if (!(from && chat)) return;
   const game = games.get(chat.id);
-  if (game && game.gameState !== GameState.IDLE) {
+  if (game && [GameState.PENDING, GameState.WINNING].includes(game?.gameState))
     return;
-  }
   return createGame(ctx, from);
 };
 

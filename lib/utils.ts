@@ -64,6 +64,7 @@ export enum GameState {
   PENDING = 'PENDING',
   WINNING = 'WINNING',
   IDLE = 'IDLE',
+  TIMED_OUT = 'TIMED_OUT',
 }
 
 export interface Game {
@@ -100,10 +101,10 @@ export async function endGame(ctx: ContextMessageUpdate, winner?: User) {
       chat.id,
       game.gameMessageID,
       undefined,
-      JSON.stringify(replyMarkup),
-    )
+      JSON.stringify(replyMarkup)
+    );
     game.gameEndMessageID = game.gameMessageID;
-    game.gameState = GameState.IDLE;
+    game.gameState = GameState.TIMED_OUT;
     games.set(chat.id, game);
     return;
   }
@@ -176,7 +177,7 @@ export async function createGame(
     leader: leader,
   };
 
-  game.elapsedTimeoutInstance = setTimeout(endGame, 10 * 60 * 1e3, ctx) as any;
+  game.elapsedTimeoutInstance = setTimeout(endGame, 6 * 1e3, ctx) as any;
   games.set(chat.id, game);
   return game;
 }
