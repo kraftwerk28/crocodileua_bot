@@ -96,16 +96,12 @@ export async function endGame(ctx: ContextMessageUpdate, winner?: User) {
     const replyMarkup = Markup.inlineKeyboard([
       Markup.callbackButton(t('request_play_btn'), Action.REQUEST_LEADING),
     ]);
-    await ctx.telegram.editMessageText(
+    await telegram.editMessageReplyMarkup(
       chat.id,
       game.gameMessageID,
       undefined,
-      t('no_winner_msg', { word: game.word }),
-      {
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup,
-      }
-    );
+      JSON.stringify(replyMarkup),
+    )
     game.gameEndMessageID = game.gameMessageID;
     game.gameState = GameState.IDLE;
     games.set(chat.id, game);
@@ -180,7 +176,7 @@ export async function createGame(
     leader: leader,
   };
 
-  game.elapsedTimeoutInstance = setTimeout(endGame, 5 * 60 * 1e3, ctx) as any;
+  game.elapsedTimeoutInstance = setTimeout(endGame, 10 * 60 * 1e3, ctx) as any;
   games.set(chat.id, game);
   return game;
 }

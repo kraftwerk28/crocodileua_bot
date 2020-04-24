@@ -1,11 +1,12 @@
 {
   "name": "crocodile-bot",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "index.js",
   "scripts": {
     "start": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "format": "prettier --write **/*.ts"
   },
   "author": "kraftwerk28 <kefirchik3@gmail.com>",
   "license": "MIT",

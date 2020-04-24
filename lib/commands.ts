@@ -1,11 +1,11 @@
 import { Mw } from './bot';
-import { createGame, ratingMention, numNoun } from './utils';
+import { createGame, ratingMention, numNoun, GameState } from './utils';
 
 export const onStart: Mw = async (ctx) => {
   const { from, games, chat } = ctx;
   if (!(from && chat)) return;
   const game = games.get(chat.id);
-  if (game?.gameEndMessageID) {
+  if (game && game.gameState !== GameState.IDLE) {
     return;
   }
   return createGame(ctx, from);

@@ -11,8 +11,8 @@ export function initializeWordGen() {
   try {
     const fpath = path.resolve(__dirname, '../../nouns.txt');
     wordList = fs.readFileSync(fpath, 'utf-8').split('\n');
-  } catch(e) {
-    throw new Error('Failed reading wordlist')
+  } catch (e) {
+    throw new Error('Failed reading wordlist');
   }
 }
 

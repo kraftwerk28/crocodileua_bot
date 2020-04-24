@@ -3,3 +3,5 @@ dist/
 Dockerfile
 docker-compose.yml
 .git/
+*.sh
+*.dump

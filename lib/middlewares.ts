@@ -1,5 +1,5 @@
 import { Mw } from './bot';
-import { endGame, checkWord, noop } from './utils';
+import { endGame, checkWord, noop, GameState } from './utils';
 
 export const checkChatType: Mw = (ctx, next = noop) => {
   const { chat } = ctx;
@@ -14,7 +14,10 @@ export const onText: Mw = async function (ctx, next = noop) {
   const game = ctx.games.get(chat.id);
   if (!game) return next();
 
-  if (checkWord(message.text!, game.word)) {
+  if (
+    game.gameState === GameState.PENDING &&
+    checkWord(message.text!, game.word)
+  ) {
     if (from.id === game.leader.id) {
       // ctx.replyTo(t('unfair_player'));
       // Not honest game flow
