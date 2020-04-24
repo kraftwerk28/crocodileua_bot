@@ -29,6 +29,8 @@ declare module 'telegraf' {
     ): Promise<Message>;
     cbQueryError(): Promise<boolean>;
     db: Pool;
+    questionTimeout: number;
+    winnerTimeout: number;
   }
 }
 
@@ -50,6 +52,8 @@ function extendContext(ctx: ContextMessageUpdate) {
   ctx.cbQueryError = function () {
     return this.answerCbQuery('An error occured.');
   };
+  ctx.questionTimeout = botConfig.misc['question_timeout'];
+  ctx.winnerTimeout = botConfig.misc['winner_choise_timeout'];
 }
 
 async function initBot(): Promise<Tf> {

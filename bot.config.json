@@ -23,5 +23,9 @@
     "user_rating": "$0. $1 ($2 $3)",
     "chat_rating_header": "<b>Рейтинг чату:</b>",
     "global_rating_header": "<b>Глобальний рейтинг:</b>"
+  },
+  "misc": {
+    "question_timeout": 300000,
+    "winner_choise_timeout": 5000
   }
 }

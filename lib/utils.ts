@@ -113,7 +113,7 @@ export async function endGame(ctx: ContextMessageUpdate, winner?: User) {
   game.gameState = GameState.WINNING;
   game.winnerTimeoutInstance = setTimeout(() => {
     game.gameState = GameState.IDLE;
-  }, 5 * 1e3);
+  }, ctx.winnerTimeout);
   const replyMarkup = Markup.inlineKeyboard([
     Markup.callbackButton(t('request_play_btn'), Action.REQUEST_LEADING),
   ]);
@@ -177,7 +177,11 @@ export async function createGame(
     leader: leader,
   };
 
-  game.elapsedTimeoutInstance = setTimeout(endGame, 6 * 1e3, ctx) as any;
+  game.elapsedTimeoutInstance = setTimeout(
+    endGame,
+    ctx.questionTimeout,
+    ctx
+  ) as any;
   games.set(chat.id, game);
   return game;
 }
