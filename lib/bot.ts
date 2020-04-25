@@ -8,7 +8,7 @@ import * as a from './actions';
 import * as m from './middlewares';
 import { initializeWordGen } from './wordGen';
 import { Action } from './actions';
-import { Game, interText, flushUpdates } from './utils';
+import { Game, interText, flushUpdates, Log } from './utils';
 import botConfig from '../bot.config.json';
 import packageJSON from '../package.json';
 import { ShutdownManager } from './shutdownManager';
@@ -78,7 +78,7 @@ async function initBot(): Promise<Tf> {
     database: DB_NAME,
   };
   const db = new Pool(connectionCfg);
-  await db.connect().then(() => console.log('DBMS connected.'));
+  await db.connect().then(() => Log.i('DBMS connected.'));
   bot.context.db = db;
 
   const commands = Object.entries(botConfig.commands).map((c) => ({
@@ -103,7 +103,7 @@ async function initBot(): Promise<Tf> {
 }
 
 export async function main() {
-  console.log('Version ' + packageJSON.version);
+  Log.i(`Version ${packageJSON.version}`);
   if (process.env.NODE_ENV === 'development') {
     const { config } = await import('dotenv');
     config();
@@ -119,17 +119,15 @@ export async function main() {
     const { WEBHOOK_HOST, WEBHOOK_PORT, WEBHOOK_PATH } = process.env;
     const port = process.env.PORT || 8080;
     const url = `https://${WEBHOOK_HOST}:${WEBHOOK_PORT}${WEBHOOK_PATH}`;
-    console.log(`Webhook path: ${url}`);
+    Log.i(`Webhook path: ${url}`);
 
     await bot.telegram.setWebhook(url);
     const server = createServer(bot.webhookCallback(WEBHOOK_PATH!));
-    server.listen(port, () =>
-      console.log(`Webhook server listening on :${port}.`)
-    );
+    server.listen(port, () => Log.i(`Webhook server listening on :${port}.`));
 
     shutdownMgr.register(server.close.bind(server));
   } else {
     bot.startPolling();
-    console.log('Started dev bot.');
+    Log.i('Started dev bot.');
   }
 }

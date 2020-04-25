@@ -22,7 +22,7 @@ export async function flushUpdates(tg: Telegram) {
 
     if (newUpdates.length > 0) {
       lastUpdateID = newUpdates[newUpdates.length - 1].update_id;
-      console.log(`Fetched old updates [id: ${lastUpdateID}].`);
+      Log.i(`Fetched old updates [id: ${lastUpdateID}].`);
       return flushUpdate(lastUpdateID + 1);
     }
   }
@@ -194,3 +194,29 @@ export function numNoun(num: number): string {
   else if (n >= 2 && n <= 4) return 'перемоги';
   else return 'перемог';
 }
+
+export const Log = {
+  _t(): string {
+    const d = new Date();
+    const date = [
+      d.getDate().toString().padStart(2, '0'),
+      d.getMonth().toString().padStart(2, '0'),
+      d.getFullYear().toString().padStart(4, '0'),
+    ].join('.');
+    const time = [
+      d.getHours().toString().padStart(2, '0'),
+      d.getMinutes().toString().padStart(2, '0'),
+      d.getSeconds().toString().padStart(2, '0'),
+    ].join(':');
+    return `[${date} ${time}]`;
+  },
+  i(...args: any[]) {
+    return console.log(this._t(), ...args);
+  },
+  w(...args: any[]) {
+    return console.warn(this._t(), args);
+  },
+  e(...args: any[]) {
+    return console.error(this._t(), args);
+  },
+};

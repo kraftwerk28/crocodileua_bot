@@ -1,5 +1,5 @@
 import util from 'util';
-import { noop } from './utils';
+import { noop, Log } from './utils';
 
 type AsyncFunc = () => Promise<any>;
 type CbFunc = (err: any, ...args: any[]) => any;
@@ -12,7 +12,7 @@ export class ShutdownManager {
       process.on(s as any, () => {
         Promise.all(this.callbacks)
           .then(() => {
-            console.log('\n\nFinished graceful shutdown.');
+            Log.i('\n\nFinished graceful shutdown.');
             process.exit(0);
           })
           .catch((e) => {
