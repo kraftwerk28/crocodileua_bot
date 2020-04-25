@@ -5,7 +5,9 @@ export const checkChatType: Mw = (ctx, next = noop) => {
   const { chat } = ctx;
   if (!chat) return next();
   if (['group', 'supergroup'].includes(chat.type)) return next();
-  return ctx.reply(ctx.t('no_pm', [ctx.me!]));
+  return ctx.reply(ctx.t('no_pm', [ctx.me!]), {
+    disable_web_page_preview: true,
+  });
 };
 
 export const onText: Mw = async function (ctx, next = noop) {
