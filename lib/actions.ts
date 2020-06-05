@@ -1,6 +1,6 @@
 import { Mw } from './bot';
 import { randWord } from './wordGen';
-import { createGame, GameState } from './utils';
+import { createGame, GameState } from './game';
 
 export enum Action {
   REQUEST_LEADING = 'request_leading',
@@ -20,7 +20,7 @@ export const onRequestLeading: Mw = async function (ctx) {
       return ctx.answerCbQuery(t('game_already_started_cb_answer'), true);
     }
     if (game.gameState === GameState.WINNING && game.winner?.id !== from.id) {
-      return ctx.answerCbQuery(t('game_winning_cb_answer'));
+      return ctx.answerCbQuery(t('game_winning_cb_answer'), true);
     }
   }
 

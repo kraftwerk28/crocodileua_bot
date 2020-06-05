@@ -1,5 +1,6 @@
 import { Mw } from './bot';
-import { createGame, ratingMention, numNoun, GameState } from './utils';
+import { ratingMention, numNoun } from './utils';
+import { GameState, createGame } from './game';
 
 export const onStart: Mw = async (ctx) => {
   const { from, games, chat } = ctx;
@@ -10,7 +11,7 @@ export const onStart: Mw = async (ctx) => {
   return createGame(ctx, from);
 };
 
-export const rating: Mw = async (ctx) => {
+export const rating: Mw = async function (ctx) {
   const { chat, t } = ctx;
   if (!chat) return;
   const data = await ctx.db.query('SELECT * FROM get_chat_rating($1)', [
@@ -34,7 +35,7 @@ export const rating: Mw = async (ctx) => {
   return ctx.replyTo(text, { parse_mode: 'HTML' });
 };
 
-export const globalRating: Mw = async (ctx) => {
+export const globalRating: Mw = async function (ctx) {
   const { t } = ctx;
   const data = await ctx.db.query('SELECT * FROM get_global_rating()');
   if (!data.rows.length) return ctx.replyTo(t('no_players_yet'));

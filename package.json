@@ -1,27 +1,28 @@
 {
   "name": "crocodile-bot",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "start": "tsc --watch",
     "build": "tsc",
-    "format": "prettier --write **/*.ts"
+    "format": "prettier --write **/*.ts",
+    "clean": "rm -rf dist/"
   },
   "author": "kraftwerk28 <kefirchik3@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "node-fetch": "^2.6.0",
-    "pg": "^8.0.2",
-    "telegraf": "^3.37.0"
+    "pg": "^8.2.1",
+    "telegraf": "^3.38.0"
   },
   "devDependencies": {
-    "@types/cheerio": "^0.22.17",
-    "@types/node-fetch": "^2.5.6",
+    "@types/cheerio": "^0.22.18",
+    "@types/node-fetch": "^2.5.7",
     "@types/pg": "^7.14.3",
     "dotenv": "^8.2.0",
     "pretty": "^2.0.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.9.5"
   }
 }

@@ -1,5 +1,5 @@
 import { createServer } from 'http';
-import Telegraf, { ContextMessageUpdate, Middleware } from 'telegraf';
+import Telegraf from 'telegraf';
 import { Message, ExtraReplyMessage } from 'telegraf/typings/telegram-types';
 import { Pool, PoolConfig } from 'pg';
 
@@ -8,18 +8,21 @@ import * as a from './actions';
 import * as m from './middlewares';
 import { initializeWordGen } from './wordGen';
 import { Action } from './actions';
-import { Game, interText, flushUpdates, Log } from './utils';
+import { interText, flushUpdates, Log } from './utils';
 import botConfig from '../bot.config.json';
 import packageJSON from '../package.json';
 import { ShutdownManager } from './shutdownManager';
+import { TelegrafContext } from 'telegraf/typings/context';
+import { MiddlewareFn } from 'telegraf/typings/composer';
+import { Game } from './game';
 
-type Tf = Telegraf<ContextMessageUpdate>;
+type Tf = Telegraf<TelegrafContext>;
 /* Standard middleware type */
-export type Mw = Middleware<ContextMessageUpdate>;
+export type Mw = MiddlewareFn<TelegrafContext>;
 type I18nToken = keyof typeof botConfig.phrases;
 
-declare module 'telegraf' {
-  interface ContextMessageUpdate {
+declare module 'telegraf/typings/context' {
+  interface TelegrafContext {
     i18n: Record<I18nToken, string>;
     t(token: I18nToken, dict?: Record<string, string> | string[]): string;
     games: Map<number, Game>;
@@ -34,7 +37,7 @@ declare module 'telegraf' {
   }
 }
 
-function extendContext(ctx: ContextMessageUpdate) {
+function extendContext(ctx: TelegrafContext) {
   ctx.i18n = botConfig.phrases;
   ctx.t = function (token, dict) {
     const text = ctx.i18n[token];
@@ -78,7 +81,8 @@ async function initBot(): Promise<Tf> {
     database: DB_NAME,
   };
   const db = new Pool(connectionCfg);
-  await db.connect().then(() => Log.i('DBMS connected.'));
+  await db.connect();
+  Log.i('DBMS connected.');
   bot.context.db = db;
 
   const commands = Object.entries(botConfig.commands).map((c) => ({
@@ -89,6 +93,7 @@ async function initBot(): Promise<Tf> {
   await bot.telegram.setMyCommands(commands);
 
   bot
+    .use()
     .use(m.checkChatType)
     .on('text', m.onText)
     .start(m.addUser, c.onStart)
@@ -108,6 +113,7 @@ export async function main() {
     const { config } = await import('dotenv');
     config();
   }
+
   initializeWordGen();
   const shutdownMgr = new ShutdownManager();
 

@@ -1,7 +1,13 @@
 import { Mw } from './bot';
-import { endGame, checkWord, noop, GameState } from './utils';
+import { checkWord, noop } from './utils';
+import { Middleware } from 'telegraf';
+import { TelegrafContext } from 'telegraf/typings/context';
+import { GameState, endGame } from './game';
 
-export const checkChatType: Mw = (ctx, next = noop) => {
+export const checkChatType: Middleware<TelegrafContext> = (
+  ctx,
+  next = noop
+) => {
   const { chat } = ctx;
   if (!chat) return next();
   if (['group', 'supergroup'].includes(chat.type)) return next();
@@ -24,7 +30,7 @@ export const onText: Mw = async function (ctx, next = noop) {
       // ctx.replyTo(t('unfair_player'));
       // Not honest game flow
     } else {
-      await addUser(ctx);
+      await addUser(ctx, noop);
       await db.query('SELECT * FROM increase_user_wins($1, $2)', [
         chat.id,
         from.id,
