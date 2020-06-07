@@ -1,5 +1,8 @@
 import { Telegram } from 'telegraf';
 import { User } from 'telegraf/typings/telegram-types';
+import path from 'path';
+
+export const BASE_DIR = path.resolve(__dirname, '../../');
 
 export function noop() {
   return Promise.resolve();

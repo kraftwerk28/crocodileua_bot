@@ -3,13 +3,14 @@ import path from 'path';
 import qs from 'querystring';
 import cheerio from 'cheerio';
 import fetch from 'node-fetch';
+import { BASE_DIR } from './utils';
 
 // Singleton
 let wordList: string[];
 
 export function initializeWordGen() {
   try {
-    const fpath = path.resolve(__dirname, '../../nouns.txt');
+    const fpath = path.join(BASE_DIR, 'nouns_simplified.txt');
     wordList = fs.readFileSync(fpath, 'utf-8').split('\n');
   } catch (e) {
     throw new Error('Failed reading wordlist');
