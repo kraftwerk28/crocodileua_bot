@@ -2,7 +2,7 @@ import { Telegram } from 'telegraf';
 import { User } from 'telegraf/typings/telegram-types';
 import path from 'path';
 
-export const BASE_DIR = path.resolve(__dirname, '../../');
+export const BASE_DIR = path.resolve(__dirname, '../../dicts/');
 
 export function noop() {
   return Promise.resolve();
@@ -36,6 +36,10 @@ export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;');
 }
 
+export function userLink(uID: number, userName: string): string {
+  return `<a href="tg://user?id=${uID}">${userName}</a>`;
+}
+
 export function mention(u: User, link = false, includeLastName = true) {
   let text = '';
   if (u.username) {
@@ -48,7 +52,7 @@ export function mention(u: User, link = false, includeLastName = true) {
   }
   text = escapeHtml(text);
 
-  return link ? `<a href="tg://user?id=${u.id}">${text}</a>` : text;
+  return link ? userLink(u.id, text) : text;
 }
 
 export function ratingMention(first_name: string, last_name?: string) {

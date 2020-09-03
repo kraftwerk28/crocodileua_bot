@@ -1,6 +1,11 @@
 import { createServer } from 'http';
 import Telegraf from 'telegraf';
-import { Message, ExtraReplyMessage } from 'telegraf/typings/telegram-types';
+import {
+  Message,
+  ExtraReplyMessage,
+  User,
+  Chat,
+} from 'telegraf/typings/telegram-types';
 import { Pool, PoolConfig } from 'pg';
 
 import * as c from './commands';
@@ -8,7 +13,16 @@ import * as a from './actions';
 import * as m from './middlewares';
 import { initializeWordGen } from './wordGen';
 import { Action } from './actions';
-import { interText, flushUpdates, Log } from './utils';
+import {
+  interText,
+  flushUpdates,
+  Log,
+  userLink,
+  mention,
+  escapeHtml,
+  numNoun,
+  ratingMention,
+} from './utils';
 import botConfig from '../bot.config.json';
 import packageJSON from '../package.json';
 import { ShutdownManager } from './shutdownManager';
@@ -22,6 +36,7 @@ export type Mw = MiddlewareFn<TelegrafContext>;
 type I18nToken = keyof typeof botConfig.phrases;
 
 declare module 'telegraf/typings/context' {
+  type UserRow = { user_id: number; first_name: string; last_name?: string };
   interface TelegrafContext {
     i18n: Record<I18nToken, string>;
     t(token: I18nToken, dict?: Record<string, string> | string[]): string;
@@ -34,6 +49,10 @@ declare module 'telegraf/typings/context' {
     db: Pool;
     questionTimeout: number;
     winnerTimeout: number;
+    CREATOR_ID: number;
+    mention(user: User): Promise<string>;
+    ratingMention(row: UserRow): Promise<string>;
+    getRating(chat?: Chat): Promise<string>;
   }
 }
 
@@ -57,6 +76,57 @@ function extendContext(ctx: TelegrafContext) {
   };
   ctx.questionTimeout = botConfig.misc['question_timeout'];
   ctx.winnerTimeout = botConfig.misc['winner_choise_timeout'];
+  ctx.CREATOR_ID = +process.env.CREATOR_ID!;
+  ctx.mention = async function (user) {
+    const q = 'SELECT * FROM aliases WHERE user_id = $1';
+    const dbResult = await this.db.query(q, [user.id]);
+    if (dbResult.rowCount) {
+      return userLink(user.id, dbResult.rows[0].alias);
+    } else {
+      return mention(user, true);
+    }
+  };
+  ctx.ratingMention = async function (row) {
+    const q = 'SELECT * FROM aliases WHERE user_id = $1';
+    const dbResult = await this.db.query(q, [row.user_id]);
+    if (dbResult.rowCount) {
+      return escapeHtml(dbResult.rows[0].alias);
+    } else {
+      let text = row.first_name;
+      if (row.last_name) {
+        text += ` ${row.last_name}`;
+      }
+      return escapeHtml(text);
+    }
+  };
+
+  ctx.getRating = async function (chat) {
+    const ratingQuery = chat
+      ? 'SELECT * FROM get_chat_rating($1)'
+      : 'SELECT * FROM get_global_rating()';
+    const aliasQuery = 'SELECT * FROM aliases';
+    const [ratingDBResponse, aliasDBResponse] = await Promise.all([
+      this.db.query(ratingQuery, chat ? [chat?.id] : []).then((r) => r.rows),
+      this.db.query(aliasQuery).then((r) => r.rows),
+    ]);
+    const aliases: Map<number, string> = aliasDBResponse.reduce((acc, row) => {
+      acc.set(row.user_id, row.alias);
+      return acc;
+    }, new Map());
+
+    if (!ratingDBResponse.length) return this.t('no_players_yet');
+
+    const ratingText = ratingDBResponse.map((r, i) =>
+      this.t(i < 3 ? 'user_rating_bold' : 'user_rating', [
+        i + 1,
+        aliases.get(r.user_id) || ratingMention(r.first_name, r.last_name),
+        r.wins,
+        numNoun(r.wins),
+      ])
+    );
+
+    return this.t('global_rating_header') + '\n\n' + ratingText.join('\n');
+  };
 }
 
 async function initBot(): Promise<Tf> {
@@ -89,7 +159,6 @@ async function initBot(): Promise<Tf> {
     command: c[0],
     description: c[1],
   }));
-  // @ts-ignore
   await bot.telegram.setMyCommands(commands);
 
   bot
@@ -101,7 +170,9 @@ async function initBot(): Promise<Tf> {
     .action(Action.VIEW_WORD, a.onViewWord)
     .action(Action.CHANGE_WORD, a.onChangeWord)
     .command('rating', c.rating)
-    .command('rating_global', c.globalRating);
+    .command('rating_global', c.globalRating)
+    .hears(/\/alias(?:@\w+)?(?:\s+(.+))?/, c.toggleAlias)
+    .command('listalias', c.listAlias);
 
   extendContext(bot.context);
   return bot;

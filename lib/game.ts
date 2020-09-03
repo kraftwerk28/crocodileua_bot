@@ -3,7 +3,6 @@ import { randWord } from './wordGen';
 import { User } from 'telegraf/typings/telegram-types';
 import { Action } from './actions';
 import { TelegrafContext } from 'telegraf/typings/context';
-import { mention } from './utils';
 
 export enum GameState {
   PENDING = 'PENDING',
@@ -57,7 +56,7 @@ export async function createGame(
     Markup.callbackButton(t('view_word_btn'), Action.VIEW_WORD),
     Markup.callbackButton(t('change_word_btn'), Action.CHANGE_WORD),
   ]);
-  const text = t('game_started', { user: mention(leader) });
+  const text = t('game_started', { user: await ctx.mention(leader) });
   const gameMessage = await ctx.reply(text, {
     reply_markup: replyMarkup,
     parse_mode: 'HTML',
@@ -116,11 +115,8 @@ export async function endGame(ctx: TelegrafContext, winner?: User) {
 
   const endMessage = await telegram.sendMessage(
     game?.chatID!,
-    t('winner_msg', { word: game.word, winner: mention(winner) }),
-    {
-      parse_mode: 'HTML',
-      reply_markup: replyMarkup,
-    }
+    t('winner_msg', { word: game.word, winner: await ctx.mention(winner) }),
+    { parse_mode: 'HTML', reply_markup: replyMarkup },
   );
   game.gameEndMessageID = endMessage.message_id;
   games.set(chat.id, game);

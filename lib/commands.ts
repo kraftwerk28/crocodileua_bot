@@ -1,5 +1,4 @@
 import { Mw } from './bot';
-import { ratingMention, numNoun } from './utils';
 import { GameState, createGame } from './game';
 
 export const onStart: Mw = async (ctx) => {
@@ -11,47 +10,41 @@ export const onStart: Mw = async (ctx) => {
   return createGame(ctx, from);
 };
 
-export const rating: Mw = async function (ctx) {
-  const { chat, t } = ctx;
-  if (!chat) return;
-  const data = await ctx.db.query('SELECT * FROM get_chat_rating($1)', [
-    chat?.id,
-  ]);
-  if (!data.rows.length) return ctx.replyTo(t('no_players_yet'));
-
-  const ratingText = data.rows
-    .map((r, i) =>
-      t(i < 3 ? 'user_rating_bold' : 'user_rating', [
-        (i + 1).toString(),
-        ratingMention(r.first_name, r.last_name),
-        r.wins,
-        numNoun(r.wins),
-      ])
-    )
-    .join('\n');
-
-  const text = t('chat_rating_header') + '\n\n' + ratingText;
-
-  return ctx.replyTo(text, { parse_mode: 'HTML' });
+export const rating: Mw = async function(ctx) {
+  return ctx.replyTo(await ctx.getRating(ctx.chat), { parse_mode: 'HTML' });
 };
 
-export const globalRating: Mw = async function (ctx) {
-  const { t } = ctx;
-  const data = await ctx.db.query('SELECT * FROM get_global_rating()');
-  if (!data.rows.length) return ctx.replyTo(t('no_players_yet'));
+export const globalRating: Mw = async function(ctx) {
+  return ctx.replyTo(await ctx.getRating(), { parse_mode: 'HTML' });
+};
 
-  const ratingText = data.rows
-    .map((r, i) =>
-      t(i < 3 ? 'user_rating_bold' : 'user_rating', [
-        (i + 1).toString(),
-        ratingMention(r.first_name, r.last_name),
-        r.wins,
-        numNoun(r.wins),
-      ])
-    )
+export const toggleAlias: Mw = async function(ctx) {
+  const { message, from, match } = ctx;
+  if (!(message && from && match && message.reply_to_message?.from)) return;
+  if (from.id !== ctx.CREATOR_ID) return;
+
+  const { from: aliasee } = message.reply_to_message;
+  let newAlias: string | undefined = match[1]?.trim();
+
+  if (!newAlias) {
+    await ctx.db.query(`DELETE FROM aliases WHERE user_id = $1`, [aliasee.id]);
+  } else {
+    await ctx.db.query(`SELECT add_alias($1, $2)`, [aliasee.id, newAlias]);
+  }
+};
+
+export const listAlias: Mw = async function(ctx) {
+  const result = await ctx.db.query('SELECT * FROM aliases');
+  const { message, from } = ctx;
+  if (!message || from?.id !== ctx.CREATOR_ID) return;
+  if (!result.rowCount) {
+    await ctx.reply('No aliases so far...', {
+      reply_to_message_id: message.message_id,
+    });
+    return;
+  }
+  const text = result.rows
+    .map((row, idx) => `${idx + 1}) ${row.user_id}: ${row.alias}`)
     .join('\n');
-
-  const text = t('global_rating_header') + '\n\n' + ratingText;
-
-  return ctx.replyTo(text, { parse_mode: 'HTML' });
+  ctx.reply(text, { reply_to_message_id: message.message_id });
 };

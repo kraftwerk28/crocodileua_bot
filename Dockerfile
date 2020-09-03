@@ -22,7 +22,7 @@ FROM prod-deps AS app
 WORKDIR /opt/app
 COPY --from=build /opt/build/dist/ dist/
 COPY bot.config.json ./
-COPY nouns.txt ./
+COPY dicts/nouns_simplified.txt dicts/nouns_simplified.txt
 RUN apk del $DEPS
 RUN npm uninstall -g node-gyp
 CMD [ "node", "./dist" ]
