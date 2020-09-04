@@ -6,7 +6,7 @@ services:
       context: ./
       cache_from: kraftwerk28/crocodileua-bot
       args:
-        BUILDKIT_INLINE_CACHE=1
+        BUILDKIT_INLINE_CACHE: 1
     image: kraftwerk28/crocodileua-bot
     environment:
       NODE_ENV: 'production'
