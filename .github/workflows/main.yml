@@ -13,9 +13,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
-
       - name: Check if ssh works
-        uses: actions/checkout@v2
         env:
           DOCKER_HOST: "ssh://${{ secrets.SSH_HOST }}"
           COMPOSE_DOCKER_CLI_BUILD: 1
