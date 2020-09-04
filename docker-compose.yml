@@ -4,7 +4,8 @@ services:
   crocodileua-bot:
     build:
       context: ./
-      cache_from: kraftwerk28/crocodileua-bot
+      cache_from:
+        - kraftwerk28/crocodileua-bot
       args:
         BUILDKIT_INLINE_CACHE: 1
     image: kraftwerk28/crocodileua-bot
