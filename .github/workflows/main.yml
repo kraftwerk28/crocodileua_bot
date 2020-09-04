@@ -19,7 +19,13 @@ jobs:
         run:
           echo "${{ secrets.ENV }}" > .env.prod
 
-      - name: Build image
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build
         env:
           COMPOSE_DOCKER_CLI_BUILD: 1
           DOCKER_BUILDKIT: 1
@@ -28,9 +34,9 @@ jobs:
           docker-compose build
           docker-compose push
 
-      # - name: Deploy
-        # env:
-          # DOCKER_HOST: "ssh://${{ secrets.SSH_HOST }}"
-        # run: |
-          # echo "DOCKER_HOST: $DOCKER_HOST"
-          # docker-compose build
+      - name: Deploy
+        env:
+          DOCKER_HOST: "ssh://${{ secrets.SSH_HOST }}"
+        run: |
+          docker-compose pull
+          docker-compose up -d
