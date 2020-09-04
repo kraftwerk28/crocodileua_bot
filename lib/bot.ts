@@ -125,7 +125,11 @@ function extendContext(ctx: TelegrafContext) {
       ])
     );
 
-    return this.t('global_rating_header') + '\n\n' + ratingText.join('\n');
+    const title = this.t(chat
+      ? 'chat_rating_header'
+      : 'global_rating_header'
+    );
+    return title + '\n\n' + ratingText.join('\n');
   };
 }
 
