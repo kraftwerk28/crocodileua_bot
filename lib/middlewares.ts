@@ -1,4 +1,4 @@
-import { Mw } from './bot';
+import { Mw } from './types';
 import { checkWord, noop } from './utils';
 import { Middleware } from 'telegraf';
 import { TelegrafContext } from 'telegraf/typings/context';
@@ -16,7 +16,7 @@ export const checkChatType: Middleware<TelegrafContext> = (
   });
 };
 
-export const onText: Mw = async function (ctx, next = noop) {
+export const onText: Mw = async function(ctx, next = noop) {
   const { from, chat, message, db } = ctx;
   if (!(chat && from && message)) return next();
   const game = ctx.games.get(chat.id);
@@ -41,7 +41,7 @@ export const onText: Mw = async function (ctx, next = noop) {
   return next();
 };
 
-export const addUser: Mw = async function (ctx, next = noop) {
+export const addUser: Mw = async function(ctx, next = noop) {
   const { from, chat } = ctx;
   if (!(from && chat)) return next();
   await ctx.db.query('SELECT * FROM add_chat_member($1, $2, $3, $4, $5)', [

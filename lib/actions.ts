@@ -1,4 +1,4 @@
-import { Mw } from './bot';
+import { Mw } from './types';
 import { randWord } from './wordGen';
 import { createGame, GameState } from './game';
 

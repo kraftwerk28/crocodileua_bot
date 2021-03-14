@@ -1,12 +1,7 @@
 import { createServer } from 'http';
 import Telegraf from 'telegraf';
-import {
-  Message,
-  ExtraReplyMessage,
-  User,
-  Chat,
-} from 'telegraf/typings/telegram-types';
 import { Pool, PoolConfig } from 'pg';
+import { TelegrafContext } from 'telegraf/typings/context';
 
 import * as c from './commands';
 import * as a from './actions';
@@ -26,58 +21,30 @@ import {
 import botConfig from '../bot.config.json';
 import packageJSON from '../package.json';
 import { ShutdownManager } from './shutdownManager';
-import { TelegrafContext } from 'telegraf/typings/context';
-import { MiddlewareFn } from 'telegraf/typings/composer';
-import { Game } from './game';
-
-type Tf = Telegraf<TelegrafContext>;
-/* Standard middleware type */
-export type Mw = MiddlewareFn<TelegrafContext>;
-type I18nToken = keyof typeof botConfig.phrases;
-
-declare module 'telegraf/typings/context' {
-  type UserRow = { user_id: number; first_name: string; last_name?: string };
-  interface TelegrafContext {
-    i18n: Record<I18nToken, string>;
-    t(token: I18nToken, dict?: Record<string, string> | string[]): string;
-    games: Map<number, Game>;
-    replyTo(
-      text: string,
-      extra?: ExtraReplyMessage | undefined
-    ): Promise<Message>;
-    cbQueryError(): Promise<boolean>;
-    db: Pool;
-    questionTimeout: number;
-    winnerTimeout: number;
-    CREATOR_ID: number;
-    mention(user: User): Promise<string>;
-    ratingMention(row: UserRow): Promise<string>;
-    getRating(chat?: Chat): Promise<string>;
-  }
-}
+import { Tf } from './types';
 
 function extendContext(ctx: TelegrafContext) {
   ctx.i18n = botConfig.phrases;
-  ctx.t = function (token, dict) {
+  ctx.t = function(token, dict) {
     const text = ctx.i18n[token];
     if (!text) return '';
     if (dict) return interText(text, dict);
     return text;
   };
   ctx.games = new Map();
-  ctx.replyTo = function (text, extra) {
+  ctx.replyTo = function(text, extra) {
     return this.reply(text, {
       ...extra,
       reply_to_message_id: this.message?.message_id,
     });
   };
-  ctx.cbQueryError = function () {
+  ctx.cbQueryError = function() {
     return this.answerCbQuery('An error occured.');
   };
   ctx.questionTimeout = botConfig.misc['question_timeout'];
   ctx.winnerTimeout = botConfig.misc['winner_choise_timeout'];
   ctx.CREATOR_ID = +process.env.CREATOR_ID!;
-  ctx.mention = async function (user) {
+  ctx.mention = async function(user) {
     const q = 'SELECT * FROM aliases WHERE user_id = $1';
     const dbResult = await this.db.query(q, [user.id]);
     if (dbResult.rowCount) {
@@ -86,7 +53,7 @@ function extendContext(ctx: TelegrafContext) {
       return mention(user, true);
     }
   };
-  ctx.ratingMention = async function (row) {
+  ctx.ratingMention = async function(row) {
     const q = 'SELECT * FROM aliases WHERE user_id = $1';
     const dbResult = await this.db.query(q, [row.user_id]);
     if (dbResult.rowCount) {
@@ -100,7 +67,7 @@ function extendContext(ctx: TelegrafContext) {
     }
   };
 
-  ctx.getRating = async function (chat) {
+  ctx.getRating = async function(chat) {
     const ratingQuery = chat
       ? 'SELECT * FROM get_chat_rating($1)'
       : 'SELECT * FROM get_global_rating()';

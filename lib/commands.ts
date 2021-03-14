@@ -1,4 +1,4 @@
-import { Mw } from './bot';
+import { Mw } from './types';
 import { GameState, createGame } from './game';
 
 export const onStart: Mw = async (ctx) => {
