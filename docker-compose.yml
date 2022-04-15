@@ -18,5 +18,5 @@ services:
 
 networks:
   default:
-    external:
-      name: globalpg
+    name: globalpg
+    external: true
