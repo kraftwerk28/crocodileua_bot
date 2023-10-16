@@ -15,7 +15,8 @@
     "cheerio": "^1.0.0-rc.3",
     "node-fetch": "^2.6.0",
     "pg": "^8.2.1",
-    "telegraf": "^3.38.0"
+    "pino": "^8.14.1",
+    "telegraf": "^4.14.0"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.18",
@@ -23,6 +24,6 @@
     "@types/pg": "^7.14.3",
     "dotenv": "^8.2.0",
     "pretty": "^2.0.0",
-    "typescript": "^3.9.5"
+    "typescript": "^5.2.2"
   }
 }

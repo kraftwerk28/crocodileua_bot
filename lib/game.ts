@@ -1,8 +1,12 @@
 import { Markup } from 'telegraf';
 import { randWord } from './wordGen';
-import { User } from 'telegraf/typings/telegram-types';
+import type { Message, User } from 'telegraf/types';
 import { Action } from './actions';
-import { TelegrafContext } from 'telegraf/typings/context';
+import { Context } from './context';
+import { escapeHtml } from './utils';
+import { logger } from './log';
+
+const log = logger.child({ module: 'game' });
 
 export enum GameState {
   PENDING = 'PENDING',
@@ -13,6 +17,7 @@ export enum GameState {
 
 export interface Game {
   chatID: number;
+  threadId?: number;
   gameState: GameState;
   gameMessageID: number;
   gameEndMessageID?: number;
@@ -23,43 +28,47 @@ export interface Game {
   winnerTimeoutInstance?: NodeJS.Timeout;
 }
 
-export async function createGame(
-  ctx: TelegrafContext,
-  leader: User
-): Promise<Game | undefined> {
-  const { chat, from, games, t, telegram, db } = ctx;
+function noop() {}
+
+export async function createGame(ctx: Context): Promise<Game | undefined> {
+  const { from, chat } = ctx;
   if (!(chat && from)) return;
 
   const { word } = await randWord();
-  const prevGame = games.get(chat.id);
+  const prevGame = ctx.games.retrieveByContext(ctx);
 
   if (prevGame) {
     clearTimeout(prevGame.elapsedTimeoutInstance as NodeJS.Timeout);
     clearTimeout(prevGame.winnerTimeoutInstance as NodeJS.Timeout);
 
     if (prevGame.gameEndMessageID) {
-      await telegram.editMessageReplyMarkup(
-        chat.id,
-        prevGame.gameEndMessageID,
-        undefined,
-        JSON.stringify({ reply_markup: [] })
-      );
+      await ctx.telegram
+        .editMessageReplyMarkup(
+          chat.id,
+          prevGame.gameEndMessageID,
+          undefined,
+          Markup.inlineKeyboard([]).reply_markup
+        )
+        .catch(noop);
     }
   }
 
-  await db.query('SELECT * FROM increase_user_leadings($1, $2)', [
+  await ctx.db.query('SELECT * FROM increase_user_leadings($1, $2)', [
     chat.id,
-    leader.id,
+    from.id,
   ]);
 
   const replyMarkup = Markup.inlineKeyboard([
-    Markup.callbackButton(t('view_word_btn'), Action.VIEW_WORD),
-    Markup.callbackButton(t('change_word_btn'), Action.CHANGE_WORD),
+    Markup.button.callback(ctx.t('view_word_btn'), Action.VIEW_WORD),
+    Markup.button.callback(ctx.t('change_word_btn'), Action.CHANGE_WORD),
   ]);
-  const text = t('game_started', { user: await ctx.mention(leader) });
+  const text = ctx.t('game_started', { user: await ctx.mention(from) });
+  const threadId = ctx.games.threadIdFromCtx(ctx);
+
   const gameMessage = await ctx.reply(text, {
-    reply_markup: replyMarkup,
     parse_mode: 'HTML',
+    message_thread_id: threadId,
+    ...replyMarkup,
   });
 
   const game: Game = {
@@ -67,22 +76,22 @@ export async function createGame(
     gameState: GameState.PENDING,
     gameMessageID: gameMessage.message_id,
     chatID: chat.id,
-    leader: leader,
+    leader: from,
+    threadId,
   };
 
   game.elapsedTimeoutInstance = setTimeout(
-    endGame,
-    ctx.questionTimeout,
-    ctx
-  ) as any;
-  games.set(chat.id, game);
+    () => endGame(ctx).catch((err) => log.error(err)),
+    ctx.questionTimeout
+  );
+  ctx.games.putByContext(game, ctx);
   return game;
 }
 
-export async function endGame(ctx: TelegrafContext, winner?: User) {
+export async function endGame(ctx: Context, winner?: User) {
   const { t, telegram, chat, games } = ctx;
   if (!chat) return;
-  const game = games.get(chat.id);
+  const game = games.retrieveByContext(ctx);
   if (!game) return;
 
   clearTimeout(game.elapsedTimeoutInstance as NodeJS.Timeout);
@@ -90,17 +99,19 @@ export async function endGame(ctx: TelegrafContext, winner?: User) {
   // Game timed out
   if (!winner) {
     const replyMarkup = Markup.inlineKeyboard([
-      Markup.callbackButton(t('request_play_btn'), Action.REQUEST_LEADING),
+      Markup.button.callback(t('request_play_btn'), Action.REQUEST_LEADING),
     ]);
-    await telegram.editMessageReplyMarkup(
-      chat.id,
-      game.gameMessageID,
-      undefined,
-      JSON.stringify(replyMarkup)
-    );
+    await telegram
+      .editMessageReplyMarkup(
+        chat.id,
+        game.gameMessageID,
+        undefined,
+        replyMarkup.reply_markup
+      )
+      .catch(noop);
     game.gameEndMessageID = game.gameMessageID;
     game.gameState = GameState.TIMED_OUT;
-    games.set(chat.id, game);
+    games.putByContext(game, ctx);
     return;
   }
 
@@ -110,14 +121,21 @@ export async function endGame(ctx: TelegrafContext, winner?: User) {
     game.gameState = GameState.IDLE;
   }, ctx.winnerTimeout);
   const replyMarkup = Markup.inlineKeyboard([
-    Markup.callbackButton(t('request_play_btn'), Action.REQUEST_LEADING),
+    Markup.button.callback(t('request_play_btn'), Action.REQUEST_LEADING),
   ]);
 
   const endMessage = await telegram.sendMessage(
-    game?.chatID!,
-    t('winner_msg', { word: game.word, winner: await ctx.mention(winner) }),
-    { parse_mode: 'HTML', reply_markup: replyMarkup },
+    game.chatID,
+    t('winner_msg', {
+      word: escapeHtml(game.word),
+      winner: await ctx.mention(winner),
+    }),
+    {
+      parse_mode: 'HTML',
+      message_thread_id: game.threadId,
+      ...replyMarkup,
+    }
   );
   game.gameEndMessageID = endMessage.message_id;
-  games.set(chat.id, game);
+  games.putByContext(game, ctx);
 }

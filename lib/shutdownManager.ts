@@ -1,5 +1,8 @@
 import util from 'util';
-import { noop, Log } from './utils';
+import { noop } from './utils';
+import { logger } from './log';
+
+const log = logger.child({ module: 'shutdownManager' });
 
 type AsyncFunc = () => Promise<any>;
 type CbFunc = (err: any, ...args: any[]) => any;
@@ -12,7 +15,7 @@ export class ShutdownManager {
       process.on(s as any, () => {
         Promise.all(this.callbacks)
           .then(() => {
-            Log.i('\n\nFinished graceful shutdown.');
+            log.info('\n\nFinished graceful shutdown.');
             process.exit(0);
           })
           .catch((e) => {
