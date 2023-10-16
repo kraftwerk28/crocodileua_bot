@@ -149,6 +149,7 @@ async function initBot(): Promise<Telegraf<Context>> {
     .command('rating_global', c.globalRating)
     .hears(/\/alias(?:@\w+)?(?:\s+(.+))?/, c.toggleAlias)
     .command('listalias', c.listAlias)
+    .command('changelog', c.changelog)
     .catch((err: unknown, ctx: Context) => {
       log.error(Object.assign(err as Error, { ctx }));
     });

@@ -1,3 +1,4 @@
+import fsp from 'node:fs/promises';
 import type { MatchedMiddleware } from 'telegraf/typings/composer';
 import type { Context, Mw } from './context';
 import { GameState, createGame } from './game';
@@ -54,5 +55,13 @@ export const listAlias: Mw = async function (ctx) {
   ctx.reply(text, {
     reply_to_message_id: message.message_id,
     message_thread_id: message.message_thread_id,
+  });
+};
+
+export const changelog: Mw = async function (ctx) {
+  const changelog = await fsp.readFile('CHANGELOG.md', 'utf-8');
+  return ctx.reply(changelog, {
+    parse_mode: 'HTML',
+    reply_to_message_id: ctx.message?.message_id,
   });
 };

@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.18",
+    "@types/node": "^20.8.6",
     "@types/node-fetch": "^2.5.7",
     "@types/pg": "^7.14.3",
     "dotenv": "^8.2.0",
