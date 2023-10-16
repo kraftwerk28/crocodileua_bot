@@ -63,12 +63,12 @@ export function checkWord(text: string, word: string): boolean {
 }
 
 export function numNoun(num: number): string {
-  if (num >= 5 && num <= 20) return 'перемог';
+  if (num >= 5 && num <= 20) return 'вгадувань';
   const n = num % 10;
-  if (n === 0) return 'перемог';
-  else if (n === 1) return 'перемога';
-  else if (n >= 2 && n <= 4) return 'перемоги';
-  else return 'перемог';
+  if (n === 0) return 'вгадувань';
+  else if (n === 1) return 'вгадування';
+  else if (n >= 2 && n <= 4) return 'вгадування';
+  else return 'вгадувань';
 }
 
 // export const Log = {
