@@ -21,8 +21,8 @@ RUN npm run build
 FROM prod-deps AS app
 WORKDIR /opt/app
 COPY --from=build /opt/build/dist/ dist/
-COPY bot.config.json ./
-COPY dicts/nouns_simplified.txt dicts/nouns_simplified.txt
+COPY bot.config.json CHANGELOG.md ./
+COPY dicts/nouns_simplified.txt dicts/
 RUN apk del $DEPS
 RUN npm uninstall -g node-gyp
 CMD [ "node", "./dist" ]
