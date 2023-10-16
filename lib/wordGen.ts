@@ -18,7 +18,7 @@ export function initializeWordGen() {
 }
 
 export async function randWord(
-  withDescription = false
+  withDescription = false,
 ): Promise<{ word: string; desc?: string }> {
   const nth = Math.floor(Math.random() * wordList.length);
   const word = wordList[nth];

@@ -45,7 +45,7 @@ export interface Context extends TelegrafContext {
   games: GameStorage;
   replyTo(
     text: string,
-    extra?: tt.ExtraReplyMessage | undefined
+    extra?: tt.ExtraReplyMessage | undefined,
   ): Promise<Message>;
   cbQueryError(): Promise<boolean>;
   db: Pool;

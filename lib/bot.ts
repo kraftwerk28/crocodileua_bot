@@ -98,7 +98,7 @@ function extendContext(ctx: Context) {
           aliases.get(r.user_id) || ratingMention(r.first_name, r.last_name),
           r.wins,
           numNoun(r.wins),
-        ])
+        ]),
       )
       .join('\n');
 
@@ -184,7 +184,7 @@ export async function main() {
 
     const port = process.env.PORT || 8080;
     server.listen(port, () =>
-      log.info(`Webhook server listening on :${port}.`)
+      log.info(`Webhook server listening on :${port}.`),
     );
 
     shutdownMgr.register(server.close.bind(server));

@@ -44,7 +44,7 @@ export function ratingMention(first_name: string, last_name?: string) {
 
 export function interText(
   text: string,
-  dict: Record<string, string> | string[]
+  dict: Record<string, string> | string[],
 ) {
   if (Array.isArray(dict)) {
     return text.replace(/\$(\d+)/g, (_, k) => dict[k]);

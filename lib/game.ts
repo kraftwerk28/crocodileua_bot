@@ -47,7 +47,7 @@ export async function createGame(ctx: Context): Promise<Game | undefined> {
           chat.id,
           prevGame.gameEndMessageID,
           undefined,
-          Markup.inlineKeyboard([]).reply_markup
+          Markup.inlineKeyboard([]).reply_markup,
         )
         .catch(noop);
     }
@@ -82,7 +82,7 @@ export async function createGame(ctx: Context): Promise<Game | undefined> {
 
   game.elapsedTimeoutInstance = setTimeout(
     () => endGame(ctx).catch((err) => log.error(err)),
-    ctx.questionTimeout
+    ctx.questionTimeout,
   );
   ctx.games.putByContext(game, ctx);
   return game;
@@ -106,7 +106,7 @@ export async function endGame(ctx: Context, winner?: User) {
         chat.id,
         game.gameMessageID,
         undefined,
-        replyMarkup.reply_markup
+        replyMarkup.reply_markup,
       )
       .catch(noop);
     game.gameEndMessageID = game.gameMessageID;
@@ -134,7 +134,7 @@ export async function endGame(ctx: Context, winner?: User) {
       parse_mode: 'HTML',
       message_thread_id: game.threadId,
       ...replyMarkup,
-    }
+    },
   );
   game.gameEndMessageID = endMessage.message_id;
   games.putByContext(game, ctx);

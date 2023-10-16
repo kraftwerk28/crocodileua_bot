@@ -16,7 +16,7 @@ export const checkChatType: Middleware<Context> = (ctx, next = noop) => {
         ...Markup.inlineKeyboard([
           Markup.button.url(
             ctx.t('no_pm_button'),
-            `https://t.me/${ctx.me}?startgroup=frompm`
+            `https://t.me/${ctx.me}?startgroup=frompm`,
           ),
         ]),
       });

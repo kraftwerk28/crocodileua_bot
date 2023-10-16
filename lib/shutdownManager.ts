@@ -30,7 +30,7 @@ export class ShutdownManager {
     this.callbacks.push(
       cb.constructor.name === 'AsyncFunction'
         ? (cb as AsyncFunc)
-        : util.promisify(cb)
+        : util.promisify(cb),
     );
   }
 }
