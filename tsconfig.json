@@ -1,13 +1,12 @@
 {
+  "extends": [
+    "@tsconfig/node20/tsconfig.json",
+    // "@tsconfig/strictest/tsconfig.json"
+  ],
   "compilerOptions": {
-    "target": "ES2018",
-    "module": "commonjs",
-    "outDir": "dist/",
-    "strict": true,
+    "module": "NodeNext",
+    "outDir": "dist",
     "noImplicitAny": false,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true
+    "resolveJsonModule": true
   }
 }

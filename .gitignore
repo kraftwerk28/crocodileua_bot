@@ -108,3 +108,6 @@ dist/
 
 deploy.sh
 *.dump
+
+*.generated.ts
+*.generated.d.ts

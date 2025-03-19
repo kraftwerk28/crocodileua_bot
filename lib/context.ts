@@ -1,9 +1,8 @@
-import { MiddlewareFn, Context as TelegrafContext } from 'telegraf';
-import type { Message, User, Chat } from 'telegraf/types';
-import type * as tt from 'telegraf/typings/telegram-types';
+import type { MiddlewareFn, Context as TelegrafContext } from 'telegraf';
+import type { Message, User, Chat, Convenience as tt } from 'telegraf/types';
 import type botConfig from '../bot.config.json';
-import type { Game } from './game';
-import type { Pool } from 'pg';
+import type { Game } from './game.js';
+import type { Store } from './db/store.js';
 
 /* Standard middleware type */
 export type Mw = MiddlewareFn<Context>;
@@ -37,22 +36,24 @@ export class GameStorage {
   }
 }
 
-type UserRow = { user_id: number; first_name: string; last_name?: string };
-
 export interface Context extends TelegrafContext {
   i18n: Record<I18nToken, string>;
-  t(token: I18nToken, dict?: Record<string, string> | string[]): string;
-  games: GameStorage;
+  t(
+    token: I18nToken,
+    dict?: Record<string, string | number> | (string | number)[],
+  ): string;
+  // games: GameStorage;
   replyTo(
     text: string,
     extra?: tt.ExtraReplyMessage | undefined,
   ): Promise<Message>;
   cbQueryError(): Promise<boolean>;
-  db: Pool;
   questionTimeout: number;
   winnerTimeout: number;
   CREATOR_ID: number;
   mention(user: User): Promise<string>;
-  ratingMention(row: UserRow): Promise<string>;
   getRating(chat?: Chat): Promise<string>;
+  getGlobalRating(): Promise<string>;
+  getLocalRating(chat: Chat): Promise<string>;
+  db: Store;
 }

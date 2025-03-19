@@ -1,26 +1,28 @@
 import { createServer } from 'http';
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
-import { Pool, PoolConfig } from 'pg';
 
-import * as c from './commands';
-import * as a from './actions';
-import * as m from './middlewares';
-import { initializeWordGen } from './wordGen';
-import { Action } from './actions';
+import * as c from './commands.js';
+import * as a from './actions.js';
+import * as m from './middlewares.js';
+import { initializeWordGen } from './wordGen.js';
+import { Action } from './actions.js';
 import {
-  interText,
+  interpolateText,
   userLink,
   mention,
   escapeHtml,
   numNoun,
   ratingMention,
-} from './utils';
-import botConfig from '../bot.config.json';
-import packageJSON from '../package.json';
-import { ShutdownManager } from './shutdownManager';
-import { logger } from './log';
-import { type Context, GameStorage } from './context';
+} from './utils.js';
+import botConfig from '../bot.config.json' assert { type: 'json' };
+import packageJSON from '../package.json' assert { type: 'json' };
+import { ShutdownManager } from './shutdownManager.js';
+import { logger } from './log.js';
+import { type Context, GameStorage } from './context.js';
+import { migrateToLatest } from './db/migrate.js';
+import { Store } from './db/store.js';
+import { createKyselyInstance } from './db/instance.js';
 
 const log = logger.child({ module: 'bot' });
 
@@ -30,11 +32,11 @@ function extendContext(ctx: Context) {
   ctx.t = function (token, dict) {
     const text = ctx.i18n[token];
     if (!text) return '';
-    if (dict) return interText(text, dict);
+    if (dict) return interpolateText(text, dict);
     return text;
   };
 
-  ctx.games = new GameStorage();
+  // ctx.games = new GameStorage();
 
   ctx.replyTo = function (text, extra) {
     return this.reply(text, {
@@ -52,85 +54,99 @@ function extendContext(ctx: Context) {
   ctx.CREATOR_ID = +process.env.CREATOR_ID!;
 
   ctx.mention = async function (user) {
-    const q = 'SELECT * FROM aliases WHERE user_id = $1';
-    const dbResult = await this.db.query(q, [user.id]);
-    if (dbResult.rowCount) {
-      return userLink(user.id, dbResult.rows[0].alias);
-    } else {
-      return mention(user, true);
-    }
+    return mention(user, true);
+    // const q = 'SELECT * FROM aliases WHERE user_id = $1';
+    // const dbResult = await this.db.query(q, [user.id]);
+    // if (dbResult.rowCount) {
+    //   return userLink(user.id, dbResult.rows[0].alias);
+    // } else {
+    //   return mention(user, true);
+    // }
   };
 
-  ctx.ratingMention = async function (row) {
-    const q = 'SELECT * FROM aliases WHERE user_id = $1';
-    const dbResult = await this.db.query(q, [row.user_id]);
-    if (dbResult.rowCount) {
-      return escapeHtml(dbResult.rows[0].alias);
-    } else {
-      let text = row.first_name;
-      if (row.last_name) {
-        text += ` ${row.last_name}`;
-      }
-      return escapeHtml(text);
-    }
-  };
+  // ctx.ratingMention = async function (row) {
+  //   const q = 'SELECT * FROM aliases WHERE user_id = $1';
+  //   const dbResult = await this.db.query(q, [row.user_id]);
+  //   if (dbResult.rowCount) {
+  //     return escapeHtml(dbResult.rows[0].alias);
+  //   } else {
+  //     let text = row.first_name;
+  //     if (row.last_name) {
+  //       text += ` ${row.last_name}`;
+  //     }
+  //     return escapeHtml(text);
+  //   }
+  // };
 
-  ctx.getRating = async function (chat) {
-    const ratingQuery = chat
-      ? 'SELECT * FROM get_chat_rating($1)'
-      : 'SELECT * FROM get_global_rating()';
-    const aliasQuery = 'SELECT * FROM aliases';
-    const [ratingDBResponse, aliasDBResponse] = await Promise.all([
-      this.db.query(ratingQuery, chat ? [chat?.id] : []).then((r) => r.rows),
-      this.db.query(aliasQuery).then((r) => r.rows),
-    ]);
-    const aliases: Map<number, string> = aliasDBResponse.reduce((acc, row) => {
-      acc.set(row.user_id, row.alias);
-      return acc;
-    }, new Map());
-
-    if (!ratingDBResponse.length) return this.t('no_players_yet');
-
-    const ratingText = ratingDBResponse
-      .map((r, i) =>
+  ctx.getGlobalRating = async function () {
+    const users = await this.db.getGlobalRating();
+    if (!users.length) return this.t('no_players_yet');
+    const ratingText = users
+      .map((user, i) =>
         this.t(i < 3 ? 'user_rating_bold' : 'user_rating', [
           i + 1,
-          aliases.get(r.user_id) || ratingMention(r.first_name, r.last_name),
-          r.wins,
-          numNoun(r.wins),
+          ratingMention(user.first_name, user.last_name ?? undefined),
+          user.win_count,
+          numNoun(user.win_count),
         ]),
       )
       .join('\n');
-
-    const title = this.t(chat ? 'chat_rating_header' : 'global_rating_header');
-    return `${title}\n${ratingText}`;
+    return `${this.t('global_rating_header')}\n${ratingText}`;
   };
+
+  ctx.getLocalRating = async function (chat) {
+    const users = await this.db.getChatRating(chat.id);
+    if (!users.length) return this.t('no_players_yet');
+    const ratingText = users
+      .map((user, i) =>
+        this.t(i < 3 ? 'user_rating_bold' : 'user_rating', [
+          i + 1,
+          ratingMention(user.first_name, user.last_name ?? undefined),
+          user.win_count,
+          numNoun(user.win_count),
+        ]),
+      )
+      .join('\n');
+    return `${this.t('chat_rating_header')}\n${ratingText}`;
+  };
+
+  // ctx.getRating = async function (chat) {
+  //   const ratingQuery = chat
+  //     ? 'SELECT * FROM get_chat_rating($1)'
+  //     : 'SELECT * FROM get_global_rating()';
+  //   const aliasQuery = 'SELECT * FROM aliases';
+  //   const [ratingDBResponse, aliasDBResponse] = await Promise.all([
+  //     this.db.query(ratingQuery, chat ? [chat?.id] : []).then((r) => r.rows),
+  //     this.db.query(aliasQuery).then((r) => r.rows),
+  //   ]);
+  //   const aliases: Map<number, string> = aliasDBResponse.reduce((acc, row) => {
+  //     acc.set(row.user_id, row.alias);
+  //     return acc;
+  //   }, new Map());
+  //
+  //   if (!ratingDBResponse.length) return this.t('no_players_yet');
+  //
+  //   const ratingText = ratingDBResponse
+  //     .map((r, i) =>
+  //       this.t(i < 3 ? 'user_rating_bold' : 'user_rating', [
+  //         i + 1,
+  //         aliases.get(r.user_id) || ratingMention(r.first_name, r.last_name),
+  //         r.wins,
+  //         numNoun(r.wins),
+  //       ]),
+  //     )
+  //     .join('\n');
+  //
+  //   const title = this.t(chat ? 'chat_rating_header' : 'global_rating_header');
+  //   return `${title}\n${ratingText}`;
+  // };
 }
 
 async function initBot(): Promise<Telegraf<Context>> {
-  const {
-    BOT_TOKEN,
-    DB_HOST,
-    DB_PORT = 5433,
-    DB_USER,
-    DB_PASSWORD,
-    DB_NAME,
-  } = process.env;
-  const bot = new Telegraf<Context>(BOT_TOKEN!, {
+  const bot = new Telegraf<Context>(process.env.BOT_TOKEN!, {
     // username: BOT_USERNAME!,
     telegram: { webhookReply: false },
   });
-  const connectionCfg: PoolConfig = {
-    host: DB_HOST,
-    port: +DB_PORT,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-    connectionTimeoutMillis: 5000,
-  };
-  const db = new Pool(connectionCfg);
-  log.info('DBMS connected');
-  bot.context.db = db;
 
   const commands = Object.entries(botConfig.commands).map((c) => ({
     command: c[0],
@@ -140,6 +156,7 @@ async function initBot(): Promise<Telegraf<Context>> {
 
   bot
     .use(m.checkChatType)
+    .on(message(), m.addUser)
     .on(message('text'), m.onText)
     .start(m.addUser, c.onStart)
     .action(Action.REQUEST_LEADING, m.addUser, a.onRequestLeading)
@@ -162,15 +179,29 @@ async function initBot(): Promise<Telegraf<Context>> {
 export async function main() {
   log.info(`Version ${packageJSON.version}`);
   if (process.env.NODE_ENV === 'development') {
-    const { config } = await import('dotenv');
-    log.info(config({ path: '.env.dev' }), 'parsed dotenv');
+    const dotenv = await import('dotenv');
+    log.info(dotenv.config({ path: '.env.dev' }), 'parsed dotenv');
   }
 
   initializeWordGen();
   const shutdownMgr = new ShutdownManager();
 
+  // const connectionCfg: pg.PoolConfig = {
+  //   connectionString: process.env.DATABASE_URL,
+  //   connectionTimeoutMillis: 5000,
+  // };
+  // const db = new pg.Pool(connectionCfg);
+  log.info('DBMS connected');
+
   const bot = await initBot();
-  shutdownMgr.register(bot.context.db!.end.bind(bot.context.db));
+
+  const kysely = createKyselyInstance();
+  log.info(await migrateToLatest(kysely), 'Database migration');
+  // log.info(await kysely.destroy(), 'Kysely destroy');
+
+  shutdownMgr.register(() => kysely.destroy());
+  const dbStore = new Store(kysely);
+  bot.context.db = dbStore;
 
   if (process.env.NODE_ENV === 'production') {
     const { WEBHOOK_HOST, WEBHOOK_PORT, WEBHOOK_PATH } = process.env;

@@ -1,18 +1,18 @@
 import { Markup } from 'telegraf';
-import { randWord } from './wordGen';
+import { randWord } from './wordGen.js';
 import type { Message, User } from 'telegraf/types';
-import { Action } from './actions';
-import { Context } from './context';
-import { escapeHtml } from './utils';
-import { logger } from './log';
+import { Action } from './actions.js';
+import { Context } from './context.js';
+import { escapeHtml } from './utils.js';
+import { logger } from './log.js';
 
 const log = logger.child({ module: 'game' });
 
 export enum GameState {
-  PENDING = 'PENDING',
-  WINNING = 'WINNING',
-  IDLE = 'IDLE',
-  TIMED_OUT = 'TIMED_OUT',
+  PENDING = 'pending',
+  WINNING = 'winning',
+  IDLE = 'idle',
+  TIMED_OUT = 'timed_out',
 }
 
 export interface Game {
@@ -30,33 +30,34 @@ export interface Game {
 
 function noop() {}
 
-export async function createGame(ctx: Context): Promise<Game | undefined> {
+export async function createGame(ctx: Context) {
   const { from, chat } = ctx;
   if (!(chat && from)) return;
 
   const { word } = await randWord();
-  const prevGame = ctx.games.retrieveByContext(ctx);
+  const prevGame = await ctx.db.getGameByCtx(
+    ctx
+  );
+  // const prevGame = ctx.games.retrieveByContext(ctx);
 
-  if (prevGame) {
-    clearTimeout(prevGame.elapsedTimeoutInstance as NodeJS.Timeout);
-    clearTimeout(prevGame.winnerTimeoutInstance as NodeJS.Timeout);
+  if (prevGame?.game_end_message_id) {
+    // clearTimeout(prevGame.elapsedTimeoutInstance as NodeJS.Timeout);
+    // clearTimeout(prevGame.winnerTimeoutInstance as NodeJS.Timeout);
 
-    if (prevGame.gameEndMessageID) {
-      await ctx.telegram
-        .editMessageReplyMarkup(
-          chat.id,
-          prevGame.gameEndMessageID,
-          undefined,
-          Markup.inlineKeyboard([]).reply_markup,
-        )
-        .catch(noop);
-    }
+    await ctx.telegram
+      .editMessageReplyMarkup(
+        chat.id,
+        parseInt(prevGame.game_end_message_id),
+        undefined,
+        Markup.inlineKeyboard([]).reply_markup,
+      )
+      .catch(noop);
   }
 
-  await ctx.db.query('SELECT * FROM increase_user_leadings($1, $2)', [
-    chat.id,
-    from.id,
-  ]);
+  // await ctx.db.query('SELECT * FROM increase_user_leadings($1, $2)', [
+  //   chat.id,
+  //   from.id,
+  // ]);
 
   const replyMarkup = Markup.inlineKeyboard([
     Markup.button.callback(ctx.t('view_word_btn'), Action.VIEW_WORD),
@@ -71,20 +72,29 @@ export async function createGame(ctx: Context): Promise<Game | undefined> {
     ...replyMarkup,
   });
 
-  const game: Game = {
+  const game = await ctx.db.createGame({
     word,
-    gameState: GameState.PENDING,
-    gameMessageID: gameMessage.message_id,
-    chatID: chat.id,
-    leader: from,
+    chatId: chat.id,
     threadId,
-  };
+    hostUserId: from.id,
+    gameMessageId: gameMessage.message_id,
+  });
 
-  game.elapsedTimeoutInstance = setTimeout(
-    () => endGame(ctx).catch((err) => log.error(err)),
-    ctx.questionTimeout,
-  );
-  ctx.games.putByContext(game, ctx);
+  // const game: Game = {
+  //   word,
+  //   gameState: GameState.PENDING,
+  //   gameMessageID: gameMessage.message_id,
+  //   chatID: chat.id,
+  //   leader: from,
+  //   threadId,
+  // };
+
+  // game.elapsedTimeoutInstance = setTimeout(
+  //   () => endGame(ctx).catch((err) => log.error(err)),
+  //   ctx.questionTimeout,
+  // );
+  // ctx.games.putByContext(game, ctx);
+  // return game;
   return game;
 }
 

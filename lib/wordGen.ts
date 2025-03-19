@@ -1,9 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import qs from 'querystring';
-import cheerio from 'cheerio';
-import fetch from 'node-fetch';
-import { BASE_DIR } from './utils';
+import fs from 'node:fs';
+import path from 'node:path';
+import { BASE_DIR } from './utils.js';
 
 // Singleton
 let wordList: string[];
@@ -17,32 +14,13 @@ export function initializeWordGen() {
   }
 }
 
+type RandomWord = { word: string; description?: string };
+
 export async function randWord(
-  withDescription = false,
-): Promise<{ word: string; desc?: string }> {
+  includeDescription = false,
+): Promise<RandomWord> {
   const nth = Math.floor(Math.random() * wordList.length);
   const word = wordList[nth];
-  if (!withDescription) return { word };
-  return { word, desc: await description(word) };
-}
-
-async function description(word: string): Promise<string | undefined> {
-  return;
-  // To be implemented...
-  const q = qs.stringify({ swrd: word });
-
-  const html = await fetch(`http://sum.in.ua?${q}`).then((r) => r.text());
-
-  const $ = cheerio.load(html);
-  const d = $('#article div[itemprop=articleBody] p');
-  if (d.length > 1) {
-    const descp = d.eq(1);
-    descp.find('*').remove();
-    return descp
-      .contents()
-      .get()
-      .map((e) => e.data.trim())
-      .filter((e) => e.length > 1)
-      .join(' ');
-  }
+  let description: string | undefined;
+  return { word, description };
 }

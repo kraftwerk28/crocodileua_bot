@@ -1,6 +1,7 @@
-import { Mw } from './context';
-import { randWord } from './wordGen';
-import { createGame, GameState } from './game';
+import { Mw } from './context.js';
+import { randWord } from './wordGen.js';
+import { createGame } from './game.js';
+import { DbGameState } from './db/store.js';
 
 export enum Action {
   REQUEST_LEADING = 'request_leading',
@@ -10,18 +11,22 @@ export enum Action {
 
 // When user presses `I want to be lead` button
 export const onRequestLeading: Mw = async function (ctx) {
-  const { t, games, chat, from, callbackQuery } = ctx;
+  const { t, chat, from, callbackQuery } = ctx;
   if (!(chat && callbackQuery?.message && from)) return ctx.cbQueryError();
 
-  const game = games.retrieveByContext(ctx);
+  // const game = games.retrieveByContext(ctx);
+  const currentGame = await ctx.db.getGameByCtx(ctx);
 
-  if (game) {
-    if (game.gameState === GameState.PENDING) {
+  if (currentGame) {
+    const { host_user_id, state } = currentGame;
+    if (state === DbGameState.Pending) {
       return ctx.answerCbQuery(t('game_already_started_cb_answer'), {
         show_alert: true,
       });
-    }
-    if (game.gameState === GameState.WINNING && game.winner?.id !== from.id) {
+    } else if (
+      state === DbGameState.WinnerHold &&
+      (host_user_id == null || host_user_id !== from.id)
+    ) {
       return ctx.answerCbQuery(t('game_winning_cb_answer'), {
         show_alert: true,
       });
@@ -40,10 +45,10 @@ export const onRequestLeading: Mw = async function (ctx) {
 };
 
 export const onViewWord: Mw = async function (ctx) {
-  const { callbackQuery, chat, from, games, t } = ctx;
+  const { callbackQuery, chat, from, t } = ctx;
   if (!(from && callbackQuery?.message && chat)) return;
-  const game = games.retrieveByContext(ctx);
-  if (game?.leader.id === from.id) {
+  const game = await ctx.db.getGameByCtx(ctx);
+  if (game && game.host_user_id === from.id) {
     return ctx.answerCbQuery(t('newgame_cb_answer', { word: game.word }), {
       show_alert: true,
     });
@@ -55,14 +60,12 @@ export const onViewWord: Mw = async function (ctx) {
 };
 
 export const onChangeWord: Mw = async function (ctx) {
-  const { callbackQuery: { message } = {}, chat, from, games, t } = ctx;
+  const { callbackQuery: { message } = {}, chat, from, t } = ctx;
   if (!(from && message && chat)) return;
-  const game = games.retrieveByContext(ctx);
-
-  if (game?.leader.id === from.id) {
+  const game = await ctx.db.getGameByCtx(ctx);
+  if (game && game.host_user_id === from.id) {
     const { word } = await randWord();
-    game.word = word;
-    games.putByContext(game, ctx);
+    await ctx.db.updateGameWord(game.id, word);
     return ctx.answerCbQuery(t('change_word_cb_answer', { word }), {
       show_alert: true,
     });

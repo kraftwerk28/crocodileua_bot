@@ -1,10 +1,10 @@
 import type { User } from 'telegraf/types';
 import path from 'path';
-import { logger } from './log';
+import { logger } from './log.js';
 
 const log = logger.child({ module: 'utils' });
 
-export const BASE_DIR = path.resolve(__dirname, '../../dicts/');
+export const BASE_DIR = path.resolve('dicts');
 
 export function noop() {
   return Promise.resolve();
@@ -42,14 +42,16 @@ export function ratingMention(first_name: string, last_name?: string) {
   return escapeHtml(`${first_name} ${last_name}`);
 }
 
-export function interText(
+type I18nItem = string | number;
+
+export function interpolateText(
   text: string,
-  dict: Record<string, string> | string[],
+  dict: Record<string, I18nItem> | I18nItem[],
 ) {
   if (Array.isArray(dict)) {
-    return text.replace(/\$(\d+)/g, (_, k) => dict[k]);
+    return text.replace(/\$(\d+)/g, (_, k) => dict[k].toString());
   } else {
-    return text.replace(/\$\{(\w+)\}/g, (_, k) => dict[k]);
+    return text.replace(/\$\{(\w+)\}/g, (_, k) => dict[k].toString());
   }
 }
 

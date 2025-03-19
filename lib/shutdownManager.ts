@@ -1,6 +1,6 @@
 import util from 'util';
-import { noop } from './utils';
-import { logger } from './log';
+import { noop } from './utils.js';
+import { logger } from './log.js';
 
 const log = logger.child({ module: 'shutdownManager' });
 

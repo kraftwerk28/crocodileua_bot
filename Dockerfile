@@ -1,4 +1,4 @@
-FROM node:alpine AS base-image
+FROM node:20-alpine AS base-image
 # ENV DEPS="make gcc g++ python3 postgresql-dev"
 # RUN apk add --no-cache $DEPS
 # RUN npm install -g node-gyp

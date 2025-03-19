@@ -1,7 +1,8 @@
-import { Mw, Context } from './context';
-import { checkWord, noop } from './utils';
-import { Middleware, Markup } from 'telegraf';
-import { GameState, endGame } from './game';
+import { type Mw, type Context } from './context.js';
+import { checkWord, escapeHtml, noop } from './utils.js';
+import { type Middleware, Markup } from 'telegraf';
+import { DbGameState } from './db/store.js';
+import { Action } from './actions.js';
 
 export const checkChatType: Middleware<Context> = (ctx, next = noop) => {
   const { chat } = ctx;
@@ -26,26 +27,35 @@ export const checkChatType: Middleware<Context> = (ctx, next = noop) => {
 };
 
 export const onText: Mw = async function (ctx, next = noop) {
-  const { from, chat, message, db } = ctx;
+  const { from, chat, message, t, telegram } = ctx;
   if (!(chat && from && message)) return next();
   if (!('text' in message)) return next();
-  const game = ctx.games.retrieveByContext(ctx);
+  const game = await ctx.db.getGameByCtx(ctx);
   if (!game) return next();
-
   if (
-    [GameState.PENDING, GameState.TIMED_OUT].includes(game.gameState) &&
+    game.state === DbGameState.Pending &&
     checkWord(message.text!, game.word)
   ) {
-    if (from.id === game.leader.id) {
+    if (from.id === game.host_user_id) {
       // ctx.replyTo(t('unfair_player'));
       // Not honest game flow
     } else {
-      await addUser(ctx, noop);
-      await db.query('SELECT * FROM increase_user_wins($1, $2)', [
-        chat.id,
-        from.id,
+      const replyMarkup = Markup.inlineKeyboard([
+        Markup.button.callback(t('request_play_btn'), Action.REQUEST_LEADING),
       ]);
-      endGame(ctx, from);
+      const endMessage = await telegram.sendMessage(
+        game.chat_id,
+        t('winner_msg', {
+          word: escapeHtml(game.word),
+          winner: await ctx.mention(from),
+        }),
+        {
+          parse_mode: 'HTML',
+          message_thread_id: game.thread_id,
+          ...replyMarkup,
+        },
+      );
+      await ctx.db.setGameWinner(game.id, from, endMessage);
     }
   }
   return next();
@@ -54,12 +64,13 @@ export const onText: Mw = async function (ctx, next = noop) {
 export const addUser: Mw = async function (ctx, next = noop) {
   const { from, chat } = ctx;
   if (!(from && chat)) return next();
-  await ctx.db.query('SELECT * FROM add_chat_member($1, $2, $3, $4, $5)', [
-    chat.id,
-    from.id,
-    from.username,
-    from.first_name,
-    from.last_name,
-  ]);
+  await Promise.all([ctx.db.saveUser(from), ctx.db.saveChatMember(chat, from)]);
+  // await ctx.db.query('SELECT * FROM add_chat_member($1, $2, $3, $4, $5)', [
+  //   chat.id,
+  //   from.id,
+  //   from.username,
+  //   from.first_name,
+  //   from.last_name,
+  // ]);
   return next();
 };

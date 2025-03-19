@@ -3,27 +3,37 @@
   "version": "1.2.1",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "tsc --watch",
+    "watch": "tsc --watch",
     "build": "tsc",
     "format": "prettier --write **/*.ts",
-    "clean": "rm -rf dist/"
+    "clean": "rm -rf dist/",
+    "pg:generate": "kysely-codegen --dialect=postgres --env-file=.env.dev --out-file=lib/db/db.generated.ts",
+    "pg:migrate": "echo TBD"
   },
   "author": "kraftwerk28 <kefirchik3@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.3",
+    "better-sqlite3": "^9.4.3",
+    "kysely": "^0.27.2",
+    "nanoid": "^5.0.6",
     "node-fetch": "^2.6.0",
-    "pg": "^8.2.1",
-    "pino": "^8.14.1",
+    "pg": "^8.11.3",
+    "pino": "^8.19.0",
     "telegraf": "^4.14.0"
   },
   "devDependencies": {
+    "@tsconfig/node-lts": "^20.1.1",
+    "@tsconfig/node20": "^20.1.2",
+    "@tsconfig/strictest": "^2.0.3",
+    "@types/better-sqlite3": "^7.6.9",
     "@types/cheerio": "^0.22.18",
     "@types/node": "^20.8.6",
     "@types/node-fetch": "^2.5.7",
     "@types/pg": "^7.14.3",
     "dotenv": "^8.2.0",
+    "kysely-codegen": "^0.11.0",
     "pretty": "^2.0.0",
     "typescript": "^5.2.2"
   }
