@@ -1,12 +1,14 @@
 {
   "extends": [
-    "@tsconfig/node20/tsconfig.json",
-    // "@tsconfig/strictest/tsconfig.json"
+    "@tsconfig/recommended/tsconfig.json",
+    "@tsconfig/node23/tsconfig.json"
   ],
   "compilerOptions": {
-    "module": "NodeNext",
-    "outDir": "dist",
-    "noImplicitAny": false,
-    "resolveJsonModule": true
-  }
+    "rootDir": "./",
+    "outDir": "build/",
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [
+    "src"
+  ]
 }
